@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Epitalamia – katalog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2rem;
+      background: #fafafa;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    select, input {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 0.8rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .card img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .meta {
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .title {
+      font-weight: bold;
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Epitalamia – katalog</h1>
+
+<div class="filters">
+  <input type="text" id="search" placeholder="Szukaj...">
+
+  <select id="printerFilter">
+    <option value="">Drukarz (wszyscy)</option>
+  </select>
+
+  <select id="placeFilter">
+    <option value="">Miejsce (wszystkie)</option>
+  </select>
+</div>
+
+<div id="results" class="grid"></div>
+
+<script>
+let DATA = [];
+
+async function loadData() {
+  const res = await fetch('data/epitalamia.json');
+  DATA = await res.json();
+
+  initFilters(DATA);
+  render(DATA);
+}
+
+function initFilters(data) {
+  const printers = [...new Set(data.map(d => d.printer))].sort();
+  const places = [...new Set(data.map(d => d.place))].sort();
+
+  const printerSelect = document.getElementById('printerFilter');
+  const placeSelect = document.getElementById('placeFilter');
+
+  printers.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    printerSelect.appendChild(opt);
+  });
+
+  places.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = p;
+    placeSelect.appendChild(opt);
+  });
+}
+
+function applyFilters() {
+  const query = document.getElementById('search').value.toLowerCase();
+  const printer = document.getElementById('printerFilter').value;
+  const place = document.getElementById('placeFilter').value;
+
+  let filtered = DATA.filter(item => {
+
+    const matchesText =
+      item.title.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query);
+
+    const matchesPrinter = !printer || item.printer === printer;
+    const matchesPlace = !place || item.place === place;
+
+    return matchesText && matchesPrinter && matchesPlace;
+  });
+
+  render(filtered);
+}
+
+function render(data) {
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  if (data.length === 0) {
+    container.innerHTML = '<p>Brak wyników</p>';
+    return;
+  }
+
+  data.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+
+    div.innerHTML = `
+      <img src="assets/images/epitalamia/${item.thumbnail}" alt="">
+      <div class="title">${item.title}</div>
+      <div class="meta">${item.year} • ${item.place}</div>
+      <div class="meta">${item.printer}</div>
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+document.getElementById('search').addEventListener('input', applyFilters);
+document.getElementById('printerFilter').addEventListener('change', applyFilters);
+document.getElementById('placeFilter').addEventListener('change', applyFilters);
+
+loadData();
+</script>
+
+</body>
+</html>
